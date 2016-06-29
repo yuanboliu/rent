@@ -2,15 +2,25 @@
 # coding:utf-8
 
 import os
+import shutil
 import logging
 import configparser
 import logging.config
 
+def createDirectory(dirName):
+  if not os.path.exists(dirName):
+    os.makedirs(dirName)
+
+def createFile(fileName):
+  if not os.path.exists(fileName):
+    filePath = os.path.dirname(fileName)
+    createDirectory(filePath)
+    open(fileName, "w+").close()
+
 
 def setupLogging(logConfFile="conf/logging.ini", logLevel=logging.INFO):
   # create logs dir
-  if not os.path.exists("logs"):
-    os.mkdir("logs")
+  createDirectory("logs")
   if os.path.exists(logConfFile):
     logging.config.fileConfig(logConfFile)
   else:

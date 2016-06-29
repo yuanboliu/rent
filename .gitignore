@@ -17,6 +17,7 @@ eggs/
 .eggs/
 .vscode/
 logs/
+run/
 .idea/
 lib/
 lib64/

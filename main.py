@@ -2,23 +2,34 @@
 # coding:utf-8
 import sys
 import os
-import common.util
+import common.util as util
+from core.daemon import Daemon
 
+conf = util.CONF
 
-def run():
-  pass
+class Rent(Daemon):
 
+  def __init__(self):
+    homeDir = conf.get("system", "homeDir")
+    pidFile = conf.get("system", "pidFile")
+    super(Rent, self).__init__(pidFile)
 
-def start():
-  pass
+  def run(self):
+    print "running here"
 
-
-def stop():
-  pass
+def prepareSystem():
+  # set home dir into conf
+  filePath = os.path.abspath(sys.argv[0])
+  homeDir = os.path.dirname(filePath)
+  conf.set("system", "homeDir", homeDir)
+  pidFile = conf.get("system", "pidFile")
+  util.createFile(pidFile)
+  util.setupLogging("conf/test.ini")
 
 
 if __name__ == "__main__":
-  baseAbsPath = os.path.abspath(sys.argv[0])
-  basePath = os.path.dirname(baseAbsPath)
-  conf = common.util.CONF
-  conf.set("system", "basePath", basePath)
+  prepareSystem()
+  import logging
+  logging.info("test for yuanbo")
+  rent = Rent()
+  rent.start()
