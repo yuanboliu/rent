@@ -35,5 +35,6 @@ def resetConf(configFile="conf/rent.ini"):
   return configure
 
 
-# this parameter should not be directly modified outside
-CONF = resetConf()
+# this parameters is used to transport
+# info between classes and functions.
+CONF = None

@@ -1,3 +1,5 @@
+#!/bin/python
+#coding:utf-8
 '''
 ***
 Modified generic daemon class
@@ -85,15 +87,16 @@ class Daemon(object):
       # Redirect standard file descriptors
       sys.stdout.flush()
       sys.stderr.flush()
-      si = file(self.stdin, 'r')
-      so = file(self.stdout, 'a+')
-      if self.stderr:
-        se = file(self.stderr, 'a+', 0)
-      else:
-        se = so
-      os.dup2(si.fileno(), sys.stdin.fileno())
-      os.dup2(so.fileno(), sys.stdout.fileno())
-      os.dup2(se.fileno(), sys.stderr.fileno())
+      # there is no need to redirect right now because of logging
+      # si = file(self.stdin, 'r')
+      # so = file(self.stdout, 'a+')
+      # if self.stderr:
+      #   se = file(self.stderr, 'a+', 0)
+      # else:
+      #   se = so
+      # os.dup2(si.fileno(), sys.stdin.fileno())
+      # os.dup2(so.fileno(), sys.stdout.fileno())
+      # os.dup2(se.fileno(), sys.stderr.fileno())
 
     def sigtermhandler(signum, frame):
       self.daemon_alive = False
@@ -110,7 +113,7 @@ class Daemon(object):
 
     if self.verbose >= 1:
       # can not print if stdout is null
-      print "Started"
+      print "Process started pid is %d" % os.getpid()
 
     # Write pidfile
     atexit.register(
@@ -127,7 +130,7 @@ class Daemon(object):
     """
 
     if self.verbose >= 1:
-      print "Starting..."
+      print "Process is starting..."
 
     # Check for a pidfile to see if the daemon already runs
     try:
@@ -158,13 +161,13 @@ class Daemon(object):
     """
 
     if self.verbose >= 1:
-      print "Stopping..."
+      print "Process is stopping..."
 
     # Get the pid from the pidfile
     pid = self.get_pid()
 
     if not pid:
-      message = "pidfile %s does not exist. Not running?\n"
+      message = "pidfile %s does not exist or pid is empty. Not running?\n"
       sys.stderr.write(message % self.pidfile)
 
       # Just to be sure. A ValueError might occur if the PID file is
@@ -180,7 +183,7 @@ class Daemon(object):
       while 1:
         os.kill(pid, signal.SIGTERM)
         time.sleep(0.1)
-        i = i + 1
+        i += 1
         if i % 10 == 0:
           os.kill(pid, signal.SIGHUP)
     except OSError, err:
@@ -193,7 +196,7 @@ class Daemon(object):
         sys.exit(1)
 
     if self.verbose >= 1:
-      print "Stopped"
+      print "Process stopped"
 
   def restart(self):
     """
@@ -202,10 +205,24 @@ class Daemon(object):
     self.stop()
     self.start()
 
+  def status(self):
+    """
+    get the status of the daemon
+    """
+    pid = self.get_pid()
+    if not pid:
+      print "Process is not running [stopped]"
+    else:
+      print "Process %d is running [started]" % pid
+
   def get_pid(self):
     try:
       pf = file(self.pidfile, 'r')
-      pid = int(pf.read().strip())
+      pidStr = pf.read().strip()
+      if not pidStr:
+        pid = None
+      else:
+        pid = int(pidStr)
       pf.close()
     except IOError:
       pid = None
