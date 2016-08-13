@@ -1,6 +1,6 @@
-#!/bin/python
+#!/usr/bin/python3
 #coding:utf-8
-'''
+"""
 ***
 Modified generic daemon class
 ***
@@ -21,7 +21,7 @@ Changes:        23rd Jan 2009 (David Mytton <david@boxedice.com>)
                   (before SystemExit was part of the Exception base)
                 13th Aug 2010 (David Mytton <david@boxedice.com>
                 - Fixed unhandled exception if PID file is empty
-'''
+"""
 
 # Core modules
 import atexit
@@ -40,7 +40,7 @@ class Daemon(object):
 
   def __init__(self, pidfile, stdin=os.devnull,
                stdout=os.devnull, stderr=os.devnull,
-               home_dir='.', umask=022, verbose=1, use_gevent=False):
+               home_dir='.', umask=0o22, verbose=1, use_gevent=False):
     self.stdin = stdin
     self.stdout = stdout
     self.stderr = stderr
@@ -62,7 +62,7 @@ class Daemon(object):
       if pid > 0:
         # Exit first parent
         sys.exit(0)
-    except OSError, e:
+    except OSError as e:
       sys.stderr.write(
         "fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
       sys.exit(1)
@@ -78,7 +78,7 @@ class Daemon(object):
       if pid > 0:
         # Exit from second parent
         sys.exit(0)
-    except OSError, e:
+    except OSError as e:
       sys.stderr.write(
         "fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
       sys.exit(1)
@@ -113,13 +113,13 @@ class Daemon(object):
 
     if self.verbose >= 1:
       # can not print if stdout is null
-      print "Process started pid is %d" % os.getpid()
+      print("Process started pid is %d" % os.getpid())
 
     # Write pidfile
     atexit.register(
       self.delpid)  # Make sure pid file is removed if we quit
     pid = str(os.getpid())
-    file(self.pidfile, 'w+').write("%s\n" % pid)
+    open(self.pidfile, 'w+').write("%s\n" % pid)
 
   def delpid(self):
     os.remove(self.pidfile)
@@ -130,11 +130,11 @@ class Daemon(object):
     """
 
     if self.verbose >= 1:
-      print "Process is starting..."
+      print("Process is starting...")
 
     # Check for a pidfile to see if the daemon already runs
     try:
-      pf = file(self.pidfile, 'r')
+      pf = open(self.pidfile, 'r')
       pidStr = pf.read().strip()
       if pidStr == "":
         pid = None
@@ -161,7 +161,7 @@ class Daemon(object):
     """
 
     if self.verbose >= 1:
-      print "Process is stopping..."
+      print("Process is stopping...")
 
     # Get the pid from the pidfile
     pid = self.get_pid()
@@ -186,17 +186,17 @@ class Daemon(object):
         i += 1
         if i % 10 == 0:
           os.kill(pid, signal.SIGHUP)
-    except OSError, err:
+    except OSError as err:
       err = str(err)
       if err.find("No such process") > 0:
         if os.path.exists(self.pidfile):
           os.remove(self.pidfile)
       else:
-        print str(err)
+        print(str(err))
         sys.exit(1)
 
     if self.verbose >= 1:
-      print "Process stopped"
+      print("Process stopped")
 
   def restart(self):
     """
@@ -211,13 +211,13 @@ class Daemon(object):
     """
     pid = self.get_pid()
     if not pid:
-      print "Process is not running [stopped]"
+      print("Process is not running [stopped]")
     else:
-      print "Process %d is running [started]" % pid
+      print("Process %d is running [started]" % pid)
 
   def get_pid(self):
     try:
-      pf = file(self.pidfile, 'r')
+      pf = open(self.pidfile, 'r')
       pidStr = pf.read().strip()
       if not pidStr:
         pid = None
@@ -234,11 +234,11 @@ class Daemon(object):
     pid = self.get_pid()
 
     if pid is None:
-      print 'Process is stopped'
+      print('Process is stopped')
     elif os.path.exists('/proc/%d' % pid):
-      print 'Process (pid %d) is running...' % pid
+      print('Process (pid %d) is running...' % pid)
     else:
-      print 'Process (pid %d) is killed' % pid
+      print('Process (pid %d) is killed' % pid)
 
     return pid and os.path.exists('/proc/%d' % pid)
 
