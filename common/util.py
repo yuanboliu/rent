@@ -34,6 +34,14 @@ def resetConf(configFile="conf/rent.ini"):
     configure.read(configFile, "utf8")
   return configure
 
+def fix_url(url):
+  """Prefix a schema-less URL with http://."""
+  if '://' not in url:
+    url = 'http://' + url
+  return url
+
+def isRedirect(response):
+  return response.status in (300, 301, 302, 303, 307)
 
 # this parameters is used to transport
 # info between classes and functions.
