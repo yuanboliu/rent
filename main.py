@@ -38,16 +38,16 @@ import logging
 # function area, get dictionaries or collections frm conf file
 def getSiteDict():
   # split site and get all root
-  siteList = conf.get("site", "all", "").split(",")
+  siteList = conf.get("site", "all").split(",")
   siteDict = {}
   for site in siteList:
     siteDict[site] = {}
-    tmpList = conf.get(site, "root", "").split(",")
+    tmpList = conf.get(site, "root").split(",")
     # collection can erase redundant root of site
-    siteDict[site].rootList = { util.fix_url(root) for root in tmpList }
-    siteDict[site].userName = conf.get(site, "userName", "")
-    siteDict[site].password = conf.get(site, "password", "")
-    siteDict[site].needLogin = conf.getboolean(site, "needLogin", False)
+    siteDict[site]["rootList"] = { util.fix_url(root) for root in tmpList }
+    siteDict[site]["userName"] = conf.get(site, "userName")
+    siteDict[site]["password"] = conf.get(site, "password")
+    siteDict[site]["needLogin"] = conf.getboolean(site, "needLogin")
   return siteDict
 
 
@@ -62,23 +62,25 @@ class Rent(Daemon):
   def startSiteCrawler(self):
     # if command line does not contain --crawl
     if not self.args.crawl:
+      logging.info("not enabled crawler")
       return
     # get site dictionary
     siteDict = getSiteDict()
     loop = asyncio.get_event_loop()
     # use multi threads to start crawl
     for site in siteDict:
-      crawler = Crawler(site.rootList,
-                        maxRedirect=conf.getint("system", "maxRedirect", 10),
-                        maxTries=conf.getint("system", "maxTries", 4),
-                        maxTasks=conf.getint("system", "maxTasks", 10))
+      crawler = Crawler(siteDict[site]["rootList"],
+                        maxRedirect=conf.getint("system", "maxRedirect"),
+                        maxTries=conf.getint("system", "maxTries"),
+                        maxTasks=conf.getint("system", "maxTasks"))
       try:
         loop.run_until_complete(crawler.crawl())  # Crawler gonna crawl
       except KeyboardInterrupt:
         sys.stderr.flush()
         logging.error("Interrupted")
       finally:
-        crawl.report.report(crawler)
+        reportFile = open(conf.get("system", "reportFile"), mode='a')
+        crawl.report.report(crawler, file=reportFile)
         crawler.close()
         # next two lines are required for actual aiohttp resource cleanup
         loop.stop()
