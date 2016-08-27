@@ -7,7 +7,6 @@ import asyncio
 import common.util as util
 from core.daemon import Daemon
 from crawl.crawl import Crawler
-import crawl.report
 
 # because conf is widely used, we should
 # use CONF to hold it in memory. and this
@@ -79,8 +78,6 @@ class Rent(Daemon):
         sys.stderr.flush()
         logging.error("Interrupted")
       finally:
-        reportFile = open(conf.get("system", "reportFile"), mode='a')
-        crawl.report.report(crawler, file=reportFile)
         crawler.close()
         # next two lines are required for actual aiohttp resource cleanup
         loop.stop()
@@ -102,8 +99,6 @@ def prepareSystem():
   homeDir = os.path.dirname(filePath)
   conf.set("system", "homeDir", homeDir)
   pidFile = conf.get("system", "pidFile")
-  reportFile = conf.get("system", "reportFile")
-  util.createFile(reportFile)
   util.createFile(pidFile)
 
 

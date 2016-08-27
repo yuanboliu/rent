@@ -46,8 +46,6 @@ class Crawler:
     self.roots = roots
     self.queue = Queue(loop=self.loop)
     self.seenUrls = set()
-    # record the process statistics and is used for report script
-    self.done = []
     self.session = aiohttp.ClientSession(loop=self.loop)
     # this property seems useless
     self.rootDomains = set()
@@ -75,10 +73,6 @@ class Crawler:
     logging.info("add a url to the queue if not seen before")
     self.seenUrls.add(url)
     self.queue.put_nowait((url, maxRedirect))
-
-
-  def recordStatistic(self, fetchStatistic):
-    self.done.append(fetchStatistic)
 
 
   def hostOkay(self, host):
@@ -121,16 +115,11 @@ class Crawler:
   @asyncio.coroutine
   def parseLinks(self, response):
     links = set()
-    contentType = None
-    encoding = None
-    body = yield from response.read()
 
     if response.status == 200:
       contentType = response.headers.get('content-type')
-      pDict = {}
       if contentType:
         contentType, pDict = cgi.parse_header(contentType)
-      encoding = pDict.get('charset', 'utf-8')
       if contentType in ('text/html', 'application/xml'):
         text = yield from response.text()
         urls = set(re.findall(r'''(?i)href=["']([^\s"'<>]+)''',
@@ -146,25 +135,13 @@ class Crawler:
           deFragmented, frag = urllib.parse.urldefrag(normalized)
           if self.urlAllowed(deFragmented):
             links.add(deFragmented)
-
-    stat = FetchStatistic(
-        url=response.url,
-        nextUrl=None,
-        status=response.status,
-        exception=None,
-        size=len(body),
-        contentType=contentType,
-        encoding=encoding,
-        numUrls=len(links),
-        numNewUrls=len(links - self.seenUrls))
-    return stat, links
+    return links
 
 
   @asyncio.coroutine
   def fetch(self, url, maxRedirect):
     """Fetch one URL."""
     tries = 0
-    exception = None
     while tries < self.maxTries:
       try:
         response = yield from self.session.get(
@@ -179,15 +156,6 @@ class Crawler:
     # if tries >= self.maxTries, execute else segment
     else:
       logging.error('%r failed after %r tries', url, self.maxTries)
-      self.recordStatistic(FetchStatistic(url=url,
-                                          nextUrl=None,
-                                          status=None,
-                                          exception=exception,
-                                          size=0,
-                                          contentType=None,
-                                          encoding=None,
-                                          numUrls=0,
-                                          numNewUrls=0))
       return
 
     try:
@@ -196,15 +164,6 @@ class Crawler:
         # location is the base url and get relative path from url
         # then we compose a new url as a next url
         nextUrl = urllib.parse.urljoin(url, location)
-        self.recordStatistic(FetchStatistic(url=url,
-                                             nextUrl=nextUrl,
-                                             status=response.status,
-                                             exception=None,
-                                             size=0,
-                                             contentType=None,
-                                             encoding=None,
-                                             numUrls=0,
-                                             numNewUrls=0))
         if nextUrl in self.seenUrls:
           return
         if maxRedirect > 0:
@@ -216,8 +175,7 @@ class Crawler:
                         nextUrl, url)
       # if url is not a redirect url
       else:
-        stat, links = yield from self.parseLinks(response)
-        self.recordStatistic(stat)
+        links = yield from self.parseLinks(response)
         for link in links.difference(self.seenUrls):
           self.queue.put_nowait((link, self.maxRedirect))
         # update links and add those links to seen links
